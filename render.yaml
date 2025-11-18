@@ -11,6 +11,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 18.20.4
       - key: DB_HOST
         sync: false # asigna el host de tu proveedor MySQL (Railway, PlanetScale, etc.)
       - key: DB_PORT
@@ -41,6 +43,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 18.20.4
       - key: REACT_APP_API_URL
         sync: false # se completa con la URL pública del backend + /api
     routes:

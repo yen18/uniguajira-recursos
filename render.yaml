@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: yen-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: "npm ci"
+    startCommand: "node server.js"
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DB_HOST
+        sync: false # asigna el host de tu proveedor MySQL (Railway, PlanetScale, etc.)
+      - key: DB_PORT
+        value: 3306
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: gestion_de_recursos
+      - key: SKIP_SCHEMA
+        value: "0"
+      - key: JWT_SECRET
+        sync: false

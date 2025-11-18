@@ -1,0 +1,9 @@
+{
+  "appId": "edu.uniguajira.recursosaudiovisuales",
+  "appName": "RecursosAudiovisuales",
+  "webDir": "build",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "http"
+  }
+}

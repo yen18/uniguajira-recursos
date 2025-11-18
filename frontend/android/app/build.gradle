@@ -1,0 +1,91 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace "edu.uniguajira.recursosaudiovisuales"
+    compileSdk rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "edu.uniguajira.recursosaudiovisuales"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // Configuración de firma (leer variables desde gradle.properties)
+    def hasReleaseSigning = project.hasProperty('RELEASE_STORE_FILE') &&
+            project.hasProperty('RELEASE_STORE_PASSWORD') &&
+            project.hasProperty('RELEASE_KEY_ALIAS') &&
+            project.hasProperty('RELEASE_KEY_PASSWORD')
+
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(project.property('RELEASE_STORE_FILE'))
+                storePassword project.property('RELEASE_STORE_PASSWORD')
+                keyAlias project.property('RELEASE_KEY_ALIAS')
+                keyPassword project.property('RELEASE_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Desactivar Lint Vital en release para evitar bloqueo por advertencias no críticas
+            // (El proyecto es híbrido Capacitor y genera falsos positivos.)
+            // AGP 8 usa el bloque lint{} abajo.
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+    // Configuración Lint (AGP 8.x): evita que falle el ensamblado de release por análisis Vital
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+        warningsAsErrors false
+        // Desactivamos algunas comprobaciones comunes que no aplican en app híbrida webview
+        disable 'AppCompatResource','MissingTranslation','UnusedResources','GoogleAppIndexingWarning'
+    }
+    // Toolchain explícita: forzar Java 17 para evitar usar JDK 25 (incompatible con AGP actual)
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

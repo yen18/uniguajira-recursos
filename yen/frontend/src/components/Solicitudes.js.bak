@@ -1,0 +1,932 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Container,
+  Typography,
+  Box,
+  Card,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  Chip,
+  Alert,
+  CircularProgress,
+  IconButton,
+  Fab,
+  Grid,
+  Divider,
+  Tabs,
+  Tab,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+  Paper,
+  Stepper,
+  Step,
+  StepLabel,
+  StepContent
+} from '@mui/material';
+import {
+  Add,
+  Edit,
+  Delete,
+  CheckCircle,
+  Cancel,
+  Visibility,
+  Schedule,
+  Event,
+  Warning,
+  Info
+} from '@mui/icons-material';
+import { 
+  solicitudesService, 
+  salasService,
+  videoproyectoresService,
+  handleApiError 
+} from '../services/api';
+
+const Solicitudes = ({ user }) => {
+  // BLOQUES DE HORARIO DISPONIBLES
+  const HORARIOS_DISPONIBLES = [
+    { id: 1, inicio: "06:30:00", fin: "08:00:00", label: "6:30 AM - 8:00 AM" },
+    { id: 2, inicio: "08:00:00", fin: "09:30:00", label: "8:00 AM - 9:30 AM" },
+    { id: 3, inicio: "09:30:00", fin: "11:00:00", label: "9:30 AM - 11:00 AM" },
+    { id: 4, inicio: "11:00:00", fin: "12:30:00", label: "11:00 AM - 12:30 PM" },
+    { id: 5, inicio: "12:30:00", fin: "14:15:00", label: "12:30 PM - 2:15 PM" },
+    { id: 6, inicio: "14:15:00", fin: "15:45:00", label: "2:15 PM - 3:45 PM" },
+    { id: 7, inicio: "15:45:00", fin: "17:15:00", label: "3:45 PM - 5:15 PM" },
+    { id: 8, inicio: "17:15:00", fin: "18:45:00", label: "5:15 PM - 6:45 PM" },
+    { id: 9, inicio: "18:45:00", fin: "20:15:00", label: "6:45 PM - 8:15 PM" },
+    { id: 10, inicio: "20:15:00", fin: "21:45:00", label: "8:15 PM - 9:45 PM" },
+    // Horarios de tarde alternativos
+    { id: 11, inicio: "15:00:00", fin: "16:30:00", label: "3:00 PM - 4:30 PM" },
+    { id: 12, inicio: "16:30:00", fin: "18:00:00", label: "4:30 PM - 6:00 PM" },
+    { id: 13, inicio: "18:00:00", fin: "19:30:00", label: "6:00 PM - 7:30 PM" },
+    { id: 14, inicio: "19:30:00", fin: "21:00:00", label: "7:30 PM - 9:00 PM" }
+  ];
+
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [salas, setSalas] = useState([]);
+  const [videoproyectores, setVideoproyectores] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
+  const [editingSolicitud, setEditingSolicitud] = useState(null);
+  const [selectedSolicitud, setSelectedSolicitud] = useState(null);
+  const [tabValue, setTabValue] = useState(0);
+  const [selectedHorarios, setSelectedHorarios] = useState([]);
+  const [formValidationError, setFormValidationError] = useState('');
+  const [activeStep, setActiveStep] = useState(0);
+  const [formData, setFormData] = useState({
+    fecha: '',
+    hora_inicio: '',
+    hora_fin: '',
+    estudiante: '',
+    programa: 'ingenieria_de_sistemas',
+    asignatura: '',
+    docente: '',
+    semestre: '',
+    celular: '',
+    servicio: 'sala',
+    salon: '',
+    id_sala: '',
+    id_videoproyector: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([
+        loadSolicitudes(),
+        loadSalas(),
+        loadVideoproyectores()
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadSolicitudes = async () => {
+    try {
+      let response;
+      if (user.tipo_de_usuario === 'administrador') {
+        response = await solicitudesService.getAll();
+      } else {
+        response = await solicitudesService.getByUsuario(user.id_usuario);
+      }
+      setSolicitudes(response.data.data);
+    } catch (error) {
+      const apiError = handleApiError(error);
+      setError(apiError.message);
+    }
+  };
+
+  const loadSalas = async () => {
+    try {
+      const response = await salasService.getDisponibles();
+      setSalas(response.data.data);
+    } catch (error) {
+      console.error('Error cargando salas:', error);
+    }
+  };
+
+  const loadVideoproyectores = async () => {
+    try {
+      const response = await videoproyectoresService.getDisponibles();
+      setVideoproyectores(response.data.data);
+    } catch (error) {
+      console.error('Error cargando videoproyectores:', error);
+    }
+  };
+
+  // FUNCIONES DE VALIDACIÓN DE FECHAS Y HORARIOS
+  const getCurrentWeekDates = () => {
+    const now = new Date();
+    const monday = new Date(now);
+    const dayOfWeek = now.getDay();
+    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    monday.setDate(diff);
+    
+    const dates = [];
+    for (let i = 0; i < 5; i++) { // Solo lunes a viernes
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      dates.push(date);
+    }
+    return dates;
+  };
+
+  const isValidDate = (dateString) => {
+    if (!dateString) return false;
+    
+    const selectedDate = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const currentWeekDates = getCurrentWeekDates();
+    
+    // Verificar que sea día de semana (lunes a viernes)
+    const dayOfWeek = selectedDate.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return false; // Domingo o sábado
+    }
+    
+    // Verificar que no sea fecha pasada
+    if (selectedDate < today) {
+      return false;
+    }
+    
+    // Verificar que esté en la semana actual
+    return currentWeekDates.some(date => 
+      date.toDateString() === selectedDate.toDateString()
+    );
+  };
+
+  const areConsecutiveHorarios = (horarios) => {
+    if (horarios.length <= 1) return true;
+    if (horarios.length > 2) return false;
+    
+    const sorted = horarios.sort((a, b) => a - b);
+    return sorted[1] === sorted[0] + 1;
+  };
+
+  const handleHorarioChange = (horarioId) => {
+    setFormValidationError('');
+    
+    let newSelectedHorarios;
+    
+    if (selectedHorarios.includes(horarioId)) {
+      // Deseleccionar
+      newSelectedHorarios = selectedHorarios.filter(id => id !== horarioId);
+    } else {
+      // Seleccionar
+      if (selectedHorarios.length >= 2) {
+        setFormValidationError('⚠️ Máximo 2 bloques de horario permitidos');
+        return;
+      }
+      
+      const newSelection = [...selectedHorarios, horarioId];
+      
+      if (!areConsecutiveHorarios(newSelection)) {
+        setFormValidationError('⚠️ Los horarios deben ser consecutivos');
+        return;
+      }
+      
+      newSelectedHorarios = newSelection;
+    }
+    
+    setSelectedHorarios(newSelectedHorarios);
+    
+    // Actualizar hora inicio y fin automáticamente
+    if (newSelectedHorarios.length > 0) {
+      const sortedHorarios = newSelectedHorarios.sort((a, b) => a - b);
+      const primerHorario = HORARIOS_DISPONIBLES.find(h => h.id === sortedHorarios[0]);
+      const ultimoHorario = HORARIOS_DISPONIBLES.find(h => h.id === sortedHorarios[sortedHorarios.length - 1]);
+      
+      setFormData(prev => ({
+        ...prev,
+        hora_inicio: primerHorario.inicio,
+        hora_fin: ultimoHorario.fin
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        hora_inicio: '',
+        hora_fin: ''
+      }));
+    }
+  };
+
+  const getMinDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
+  const getMaxDate = () => {
+    const currentWeekDates = getCurrentWeekDates();
+    const lastDay = currentWeekDates[currentWeekDates.length - 1];
+    return lastDay.toISOString().split('T')[0];
+  };
+
+  const handleOpenDialog = (solicitud = null) => {
+    setFormValidationError('');
+    setActiveStep(0);
+    
+    if (solicitud) {
+      setEditingSolicitud(solicitud);
+      setFormData({
+        fecha: solicitud.fecha.split('T')[0],
+        hora_inicio: solicitud.hora_inicio,
+        hora_fin: solicitud.hora_fin,
+        estudiante: solicitud.estudiante || '',
+        programa: solicitud.programa || 'ingenieria_de_sistemas',
+        asignatura: solicitud.asignatura || '',
+        docente: solicitud.docente || '',
+        semestre: solicitud.semestre || '',
+        celular: solicitud.celular || '',
+        servicio: solicitud.servicio,
+        salon: solicitud.salon,
+        id_sala: solicitud.id_sala || '',
+        id_videoproyector: solicitud.id_videoproyector || ''
+      });
+      
+      // Encontrar horarios correspondientes para edición
+      const horarioEncontrado = HORARIOS_DISPONIBLES.filter(h => 
+        h.inicio === solicitud.hora_inicio || h.fin === solicitud.hora_fin
+      );
+      setSelectedHorarios(horarioEncontrado.map(h => h.id));
+    } else {
+      setEditingSolicitud(null);
+      setSelectedHorarios([]);
+      setFormData({
+        fecha: '',
+        hora_inicio: '',
+        hora_fin: '',
+        estudiante: user.nombre || '',
+        programa: 'ingenieria_de_sistemas',
+        asignatura: '',
+        docente: '',
+        semestre: '',
+        celular: '',
+        servicio: 'sala',
+        salon: '',
+        id_sala: '',
+        id_videoproyector: ''
+      });
+    }
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setEditingSolicitud(null);
+    setSelectedHorarios([]);
+    setFormValidationError('');
+    setActiveStep(0);
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+    
+    // Validar fecha en tiempo real
+    if (name === 'fecha') {
+      setFormValidationError('');
+      if (value && !isValidDate(value)) {
+        const selectedDate = new Date(value);
+        const dayOfWeek = selectedDate.getDay();
+        
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          setFormValidationError('❌ No se permiten sábados ni domingos');
+        } else if (selectedDate < new Date()) {
+          setFormValidationError('❌ No se permiten fechas anteriores al día actual');
+        } else {
+          setFormValidationError('❌ Solo se permiten fechas de la semana actual (lunes a viernes)');
+        }
+      }
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    
+    try {
+      const dataToSubmit = {
+        ...formData,
+        id_usuario: user.id_usuario,
+        id_sala: formData.servicio === 'sala' ? formData.id_sala : null,
+        id_videoproyector: formData.servicio === 'videoproyector' ? formData.id_videoproyector : null
+      };
+
+      if (editingSolicitud) {
+        await solicitudesService.update(editingSolicitud.id_solicitud, dataToSubmit);
+      } else {
+        await solicitudesService.create(dataToSubmit);
+      }
+      
+      handleCloseDialog();
+      loadSolicitudes();
+    } catch (error) {
+      const apiError = handleApiError(error);
+      setError(apiError.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getStatusColor = (estado) => {
+    switch (estado) {
+      case 'aprobada': return 'success';
+      case 'rechazada': return 'error';
+      case 'pendiente': return 'warning';
+      default: return 'default';
+    }
+  };
+
+  const getStatusIcon = (estado) => {
+    switch (estado) {
+      case 'aprobada': return <CheckCircle />;
+      case 'rechazada': return <Cancel />;
+      case 'pendiente': return <Schedule />;
+      default: return null;
+    }
+  };
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress size={60} />
+        </Box>
+      </Container>
+    );
+  }
+
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+          📋 Gestión de Solicitudes
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary">
+          Sistema avanzado de reservas de recursos audiovisuales
+        </Typography>
+      </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      <Card sx={{ mb: 3, p: 3, background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)' }}>
+        <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+          📋 RESUMEN DE REGLAS DEL SISTEMA
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>📅 FECHAS:</Typography>
+              <Typography variant="body2">✅ Solo días de semana (lunes a viernes)</Typography>
+              <Typography variant="body2">❌ NO sábados ni domingos</Typography>
+              <Typography variant="body2">❌ NO fechas pasadas</Typography>
+              <Typography variant="body2">❌ NO fechas futuras (solo semana actual)</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>⏰ HORARIOS:</Typography>
+              <Typography variant="body2">✅ Máximo 2 bloques de horario</Typography>
+              <Typography variant="body2">✅ Solo horarios consecutivos permitidos</Typography>
+              <Typography variant="body2">✅ 14 bloques de horario disponibles</Typography>
+              <Typography variant="body2">✅ Rangos de 1.5 horas cada bloque</Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </Card>
+
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
+          <Tab label="📋 Todas las Solicitudes" />
+          <Tab label="⏳ Pendientes" />
+          <Tab label="✅ Aprobadas" />
+          <Tab label="❌ Rechazadas" />
+        </Tabs>
+        
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => handleOpenDialog()}
+          sx={{ 
+            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+            boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+          }}
+        >
+          Nueva Solicitud
+        </Button>
+      </Box>
+
+      <List>
+        {solicitudes
+          .filter(solicitud => {
+            if (tabValue === 0) return true;
+            if (tabValue === 1) return solicitud.estado === 'pendiente';
+            if (tabValue === 2) return solicitud.estado === 'aprobada';
+            if (tabValue === 3) return solicitud.estado === 'rechazada';
+            return true;
+          })
+          .map(solicitud => (
+            <Card key={solicitud.id_solicitud} sx={{ mb: 2, p: 2 }}>
+              <ListItem>
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                        📚 {solicitud.asignatura}
+                      </Typography>
+                      <Chip
+                        icon={getStatusIcon(solicitud.estado)}
+                        label={solicitud.estado.toUpperCase()}
+                        color={getStatusColor(solicitud.estado)}
+                        size="small"
+                      />
+                    </Box>
+                  }
+                  secondary={
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        📅 {formatDate(solicitud.fecha)} • 
+                        ⏰ {solicitud.hora_inicio} - {solicitud.hora_fin} •
+                        🏢 {solicitud.salon}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        👤 {solicitud.estudiante} • 📧 {solicitud.correo_electronico}
+                      </Typography>
+                    </Box>
+                  }
+                />
+                <ListItemSecondaryAction>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setSelectedSolicitud(solicitud);
+                        setOpenDetailDialog(true);
+                      }}
+                    >
+                      <Visibility />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleOpenDialog(solicitud)}
+                    >
+                      <Edit />
+                    </IconButton>
+                  </Box>
+                </ListItemSecondaryAction>
+              </ListItem>
+            </Card>
+          ))}
+      </List>
+
+      <Fab
+        color="primary"
+        sx={{ position: 'fixed', bottom: 16, right: 16 }}
+        onClick={() => handleOpenDialog()}
+      >
+        <Add />
+      </Fab>
+
+      {/* Dialog principal mejorado */}
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3, minHeight: '70vh' } }}
+      >
+        <form onSubmit={handleSubmit}>
+          <DialogTitle sx={{ 
+            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)', 
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}>
+            <Event />
+            {editingSolicitud ? '✏️ Editar Solicitud' : '➕ Nueva Solicitud'}
+          </DialogTitle>
+          
+          <DialogContent dividers sx={{ p: 3 }}>
+            <Stepper activeStep={activeStep} orientation="vertical">
+              {/* PASO 1: FECHA */}
+              <Step>
+                <StepLabel>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Event color="primary" />
+                    <Typography variant="h6">Seleccionar Fecha</Typography>
+                  </Box>
+                </StepLabel>
+                <StepContent>
+                  <Box sx={{ mb: 2 }}>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      📅 <strong>FECHAS VÁLIDAS:</strong> Solo días de semana (lunes a viernes) de la semana actual
+                    </Alert>
+                    
+                    <TextField
+                      name="fecha"
+                      label="Fecha de la Solicitud"
+                      type="date"
+                      fullWidth
+                      required
+                      value={formData.fecha}
+                      onChange={handleChange}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{
+                        min: getMinDate(),
+                        max: getMaxDate()
+                      }}
+                      sx={{ mb: 2 }}
+                      helperText="Solo se permiten fechas de lunes a viernes de la semana actual"
+                    />
+                    
+                    {formValidationError && (
+                      <Alert severity="error" sx={{ mb: 2 }}>
+                        {formValidationError}
+                      </Alert>
+                    )}
+                    
+                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                      <Button 
+                        variant="contained" 
+                        onClick={() => setActiveStep(1)}
+                        disabled={!formData.fecha || !isValidDate(formData.fecha)}
+                      >
+                        Siguiente: Horarios
+                      </Button>
+                    </Box>
+                  </Box>
+                </StepContent>
+              </Step>
+
+              {/* PASO 2: HORARIOS */}
+              <Step>
+                <StepLabel>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Schedule color="primary" />
+                    <Typography variant="h6">Seleccionar Horarios</Typography>
+                  </Box>
+                </StepLabel>
+                <StepContent>
+                  <Box sx={{ mb: 2 }}>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      ⏰ <strong>REGLAS:</strong> Máximo 2 bloques consecutivos • Cada bloque = 1.5 horas
+                    </Alert>
+                    
+                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                      🌅 Horarios de Mañana
+                    </Typography>
+                    <Paper elevation={2} sx={{ p: 2, mb: 2, backgroundColor: '#f8f9fa' }}>
+                      <FormGroup row>
+                        {HORARIOS_DISPONIBLES.slice(0, 5).map((horario) => (
+                          <FormControlLabel
+                            key={horario.id}
+                            control={
+                              <Checkbox
+                                checked={selectedHorarios.includes(horario.id)}
+                                onChange={() => handleHorarioChange(horario.id)}
+                                color="primary"
+                              />
+                            }
+                            label={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Schedule fontSize="small" />
+                                <Typography variant="body2">{horario.label}</Typography>
+                              </Box>
+                            }
+                            sx={{ minWidth: '50%', mb: 1 }}
+                          />
+                        ))}
+                      </FormGroup>
+                    </Paper>
+                    
+                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold', color: 'warning.main' }}>
+                      🌆 Horarios de Tarde - Opción A
+                    </Typography>
+                    <Paper elevation={2} sx={{ p: 2, mb: 2, backgroundColor: '#fff3e0' }}>
+                      <FormGroup row>
+                        {HORARIOS_DISPONIBLES.slice(5, 10).map((horario) => (
+                          <FormControlLabel
+                            key={horario.id}
+                            control={
+                              <Checkbox
+                                checked={selectedHorarios.includes(horario.id)}
+                                onChange={() => handleHorarioChange(horario.id)}
+                                color="warning"
+                              />
+                            }
+                            label={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Schedule fontSize="small" />
+                                <Typography variant="body2">{horario.label}</Typography>
+                              </Box>
+                            }
+                            sx={{ minWidth: '50%', mb: 1 }}
+                          />
+                        ))}
+                      </FormGroup>
+                    </Paper>
+                    
+                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold', color: 'secondary.main' }}>
+                      🌙 Horarios de Tarde - Opción B
+                    </Typography>
+                    <Paper elevation={2} sx={{ p: 2, mb: 2, backgroundColor: '#f3e5f5' }}>
+                      <FormGroup row>
+                        {HORARIOS_DISPONIBLES.slice(10, 14).map((horario) => (
+                          <FormControlLabel
+                            key={horario.id}
+                            control={
+                              <Checkbox
+                                checked={selectedHorarios.includes(horario.id)}
+                                onChange={() => handleHorarioChange(horario.id)}
+                                color="secondary"
+                              />
+                            }
+                            label={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Schedule fontSize="small" />
+                                <Typography variant="body2">{horario.label}</Typography>
+                              </Box>
+                            }
+                            sx={{ minWidth: '50%', mb: 1 }}
+                          />
+                        ))}
+                      </FormGroup>
+                    </Paper>
+                    
+                    {selectedHorarios.length > 0 && (
+                      <Alert severity="success" sx={{ mb: 2 }}>
+                        ✅ <strong>Horario seleccionado:</strong> {formData.hora_inicio} - {formData.hora_fin}
+                        <br />
+                        📊 <strong>Bloques:</strong> {selectedHorarios.length}/2
+                      </Alert>
+                    )}
+                    
+                    {formValidationError && (
+                      <Alert severity="error" sx={{ mb: 2 }}>
+                        {formValidationError}
+                      </Alert>
+                    )}
+                    
+                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                      <Button onClick={() => setActiveStep(0)}>
+                        Volver
+                      </Button>
+                      <Button 
+                        variant="contained" 
+                        onClick={() => setActiveStep(2)}
+                        disabled={selectedHorarios.length === 0}
+                      >
+                        Siguiente: Detalles
+                      </Button>
+                    </Box>
+                  </Box>
+                </StepContent>
+              </Step>
+
+              {/* PASO 3: DETALLES */}
+              <Step>
+                <StepLabel>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Info color="primary" />
+                    <Typography variant="h6">Información Adicional</Typography>
+                  </Box>
+                </StepLabel>
+                <StepContent>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <FormControl fullWidth sx={{ mb: 2 }}>
+                        <InputLabel>Tipo de Servicio</InputLabel>
+                        <Select
+                          name="servicio"
+                          value={formData.servicio}
+                          onChange={handleChange}
+                          label="Tipo de Servicio"
+                        >
+                          <MenuItem value="sala">🏢 Sala</MenuItem>
+                          <MenuItem value="videoproyector">📽️ Videoproyector</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+
+                    {formData.servicio === 'sala' && (
+                      <Grid item xs={12}>
+                        <FormControl fullWidth sx={{ mb: 2 }}>
+                          <InputLabel>Sala</InputLabel>
+                          <Select
+                            name="id_sala"
+                            value={formData.id_sala}
+                            onChange={handleChange}
+                            label="Sala"
+                            required
+                          >
+                            {salas.map(sala => (
+                              <MenuItem key={sala.id_sala} value={sala.id_sala}>
+                                🏢 {sala.nombre} - {sala.ubicacion} (Capacidad: {sala.capacidad})
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                    )}
+
+                    {formData.servicio === 'videoproyector' && (
+                      <Grid item xs={12}>
+                        <FormControl fullWidth sx={{ mb: 2 }}>
+                          <InputLabel>Videoproyector</InputLabel>
+                          <Select
+                            name="id_videoproyector"
+                            value={formData.id_videoproyector}
+                            onChange={handleChange}
+                            label="Videoproyector"
+                            required
+                          >
+                            {videoproyectores.map(projector => (
+                              <MenuItem key={projector.id_videoproyector} value={projector.id_videoproyector}>
+                                📽️ {projector.nombre} - {projector.ubicacion}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                    )}
+
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        name="asignatura"
+                        label="Asignatura"
+                        fullWidth
+                        required
+                        value={formData.asignatura}
+                        onChange={handleChange}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        name="salon"
+                        label="Salón"
+                        fullWidth
+                        required
+                        value={formData.salon}
+                        onChange={handleChange}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        name="docente"
+                        label="Docente"
+                        fullWidth
+                        value={formData.docente}
+                        onChange={handleChange}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        name="semestre"
+                        label="Semestre"
+                        fullWidth
+                        value={formData.semestre}
+                        onChange={handleChange}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        name="celular"
+                        label="Número de Celular"
+                        fullWidth
+                        value={formData.celular}
+                        onChange={handleChange}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                  </Grid>
+                  
+                  <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                    <Button onClick={() => setActiveStep(1)}>
+                      Volver
+                    </Button>
+                  </Box>
+                </StepContent>
+              </Step>
+            </Stepper>
+          </DialogContent>
+          
+          <DialogActions sx={{ p: 3, backgroundColor: '#f5f5f5' }}>
+            <Button onClick={handleCloseDialog} color="inherit">
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              disabled={submitting || selectedHorarios.length === 0 || !formData.fecha}
+              startIcon={submitting ? <CircularProgress size={20} /> : <CheckCircle />}
+            >
+              {submitting ? 'Guardando...' : (editingSolicitud ? 'Actualizar' : 'Crear Solicitud')}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* Dialog de detalles */}
+      <Dialog
+        open={openDetailDialog}
+        onClose={() => setOpenDetailDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>📋 Detalles de la Solicitud</DialogTitle>
+        <DialogContent>
+          {selectedSolicitud && (
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2">Fecha:</Typography>
+                <Typography>{formatDate(selectedSolicitud.fecha)}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2">Horario:</Typography>
+                <Typography>{selectedSolicitud.hora_inicio} - {selectedSolicitud.hora_fin}</Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle2">Estado:</Typography>
+                <Chip
+                  icon={getStatusIcon(selectedSolicitud.estado)}
+                  label={selectedSolicitud.estado.toUpperCase()}
+                  color={getStatusColor(selectedSolicitud.estado)}
+                />
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDetailDialog(false)}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
+    </Container>
+  );
+};
+
+export default Solicitudes;

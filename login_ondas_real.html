@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Ondas - Universidad de La Guajira</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ===== ONDAS GIRATORIAS - EFECTO REAL ===== */
+        .waves-container {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+        }
+
+        .wave-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: none;
+            top: 50%;
+            left: 50%;
+            transform-origin: center;
+        }
+
+        /* ONDA 1 - Naranja externa */
+        .wave-1 {
+            width: 500px;
+            height: 500px;
+            margin: -250px 0 0 -250px;
+            border: 3px solid transparent;
+            background: conic-gradient(
+                from 0deg,
+                #F7931E 0deg 60deg,
+                transparent 60deg 120deg,
+                #F7931E 120deg 180deg,
+                transparent 180deg 240deg,
+                #F7931E 240deg 300deg,
+                transparent 300deg 360deg
+            );
+            border-radius: 50%;
+            animation: rotateWave1 8s linear infinite;
+            filter: blur(1px) drop-shadow(0 0 20px #F7931E);
+        }
+
+        /* ONDA 2 - Azul media */
+        .wave-2 {
+            width: 400px;
+            height: 400px;
+            margin: -200px 0 0 -200px;
+            border: 2px solid transparent;
+            background: conic-gradient(
+                from 45deg,
+                transparent 0deg 80deg,
+                #00AEEF 80deg 140deg,
+                transparent 140deg 200deg,
+                #00AEEF 200deg 260deg,
+                transparent 260deg 320deg,
+                #00AEEF 320deg 360deg
+            );
+            border-radius: 50%;
+            animation: rotateWave2 6s linear infinite reverse;
+            filter: blur(1px) drop-shadow(0 0 15px #00AEEF);
+        }
+
+        /* ONDA 3 - Amarilla interna */
+        .wave-3 {
+            width: 300px;
+            height: 300px;
+            margin: -150px 0 0 -150px;
+            border: 2px solid transparent;
+            background: conic-gradient(
+                from 90deg,
+                #FFC20E 0deg 50deg,
+                transparent 50deg 100deg,
+                #FFC20E 100deg 150deg,
+                transparent 150deg 200deg,
+                #FFC20E 200deg 250deg,
+                transparent 250deg 300deg,
+                #FFC20E 300deg 360deg
+            );
+            border-radius: 50%;
+            animation: rotateWave3 10s linear infinite;
+            filter: blur(1px) drop-shadow(0 0 12px #FFC20E);
+        }
+
+        /* ONDA 4 - Roja muy interna */
+        .wave-4 {
+            width: 200px;
+            height: 200px;
+            margin: -100px 0 0 -100px;
+            border: 1px solid transparent;
+            background: conic-gradient(
+                from 180deg,
+                transparent 0deg 60deg,
+                #EF4136 60deg 120deg,
+                transparent 120deg 180deg,
+                #EF4136 180deg 240deg,
+                transparent 240deg 300deg,
+                #EF4136 300deg 360deg
+            );
+            border-radius: 50%;
+            animation: rotateWave4 4s linear infinite reverse;
+            filter: blur(1px) drop-shadow(0 0 10px #EF4136);
+        }
+
+        /* Animaciones de ondas */
+        @keyframes rotateWave1 {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes rotateWave2 {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes rotateWave3 {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes rotateWave4 {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ===== FORMULARIO DE LOGIN ===== */
+        .login-container {
+            position: relative;
+            z-index: 10;
+            background: rgba(25, 25, 40, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 50px 40px;
+            border-radius: 25px;
+            width: 400px;
+            border: 2px solid rgba(247, 147, 30, 0.3);
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                0 0 50px rgba(247, 147, 30, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            animation: fadeInUp 1s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Header */
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #F7931E, #FFC20E);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 35px;
+            animation: logoGlow 3s ease-in-out infinite;
+            border: 3px solid rgba(247, 147, 30, 0.4);
+        }
+
+        @keyframes logoGlow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(247, 147, 30, 0.6);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 35px rgba(247, 147, 30, 1);
+                transform: scale(1.05);
+            }
+        }
+
+        .login-title {
+            color: white;
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+            font-weight: 400;
+        }
+
+        /* Inputs */
+        .input-group {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 16px 50px 16px 20px;
+            background: rgba(45, 55, 72, 0.8);
+            border: 2px solid rgba(247, 147, 30, 0.2);
+            border-radius: 15px;
+            color: white;
+            font-size: 16px;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            outline: none;
+        }
+
+        .input-field:focus {
+            border-color: #F7931E;
+            background: rgba(45, 55, 72, 1);
+            box-shadow: 0 0 20px rgba(247, 147, 30, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .input-icon {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #F7931E;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        /* Button */
+        .login-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #F7931E, #FFC20E);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            box-shadow: 0 15px 35px rgba(247, 147, 30, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px rgba(247, 147, 30, 0.6);
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 20px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-password:hover {
+            color: #F7931E;
+        }
+
+        /* Partículas de fondo */
+        .particle {
+            position: absolute;
+            background: radial-gradient(circle, rgba(247, 147, 30, 0.1), transparent);
+            border-radius: 50%;
+            animation: floatParticle 8s ease-in-out infinite;
+        }
+
+        .particle:nth-child(1) {
+            width: 60px;
+            height: 60px;
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .particle:nth-child(2) {
+            width: 80px;
+            height: 80px;
+            top: 70%;
+            right: 15%;
+            animation-delay: 3s;
+        }
+
+        .particle:nth-child(3) {
+            width: 40px;
+            height: 40px;
+            bottom: 30%;
+            left: 20%;
+            animation-delay: 6s;
+        }
+
+        @keyframes floatParticle {
+            0%, 100% {
+                transform: translateY(0px) scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translateY(-30px) scale(1.2);
+                opacity: 0.8;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .waves-container {
+                width: 400px;
+                height: 400px;
+            }
+            
+            .wave-1 { width: 350px; height: 350px; margin: -175px 0 0 -175px; }
+            .wave-2 { width: 280px; height: 280px; margin: -140px 0 0 -140px; }
+            .wave-3 { width: 210px; height: 210px; margin: -105px 0 0 -105px; }
+            .wave-4 { width: 140px; height: 140px; margin: -70px 0 0 -70px; }
+            
+            .login-container {
+                width: 90%;
+                padding: 40px 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Partículas de fondo -->
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+
+    <!-- Ondas giratorias -->
+    <div class="waves-container">
+        <div class="wave-ring wave-1"></div>
+        <div class="wave-ring wave-2"></div>
+        <div class="wave-ring wave-3"></div>
+        <div class="wave-ring wave-4"></div>
+    </div>
+
+    <!-- Formulario de login -->
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo">🎓</div>
+            <h1 class="login-title">Welcome</h1>
+            <p class="login-subtitle">Universidad de La Guajira - Recursos Audiovisuales</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="input-group">
+                <input type="text" class="input-field" placeholder="Username" id="username" required>
+                <span class="input-icon">👤</span>
+            </div>
+
+            <div class="input-group">
+                <input type="password" class="input-field" placeholder="Password" id="password" required>
+                <span class="input-icon" id="togglePassword">👁️</span>
+            </div>
+
+            <button type="submit" class="login-btn">Sign In</button>
+        </form>
+
+        <div class="forgot-password">¿Olvidaste tu contraseña?</div>
+    </div>
+
+    <script>
+        // Toggle password visibility
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordField = document.getElementById('password');
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                this.textContent = '🙈';
+            } else {
+                passwordField.type = 'password';
+                this.textContent = '👁️';
+            }
+        });
+
+        // Form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                alert('Por favor complete todos los campos');
+                return;
+            }
+            
+            // Aquí iría la lógica de autenticación
+            console.log('Login attempt:', { username, password });
+            alert('Conectando con el servidor...');
+        });
+
+        // Input focus effects
+        document.querySelectorAll('.input-field').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.style.transform = 'translateY(-2px)';
+            });
+            
+            input.addEventListener('blur', function() {
+                this.parentElement.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body>
+</html>

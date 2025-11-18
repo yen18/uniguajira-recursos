@@ -1,0 +1,19 @@
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	@api path /api* /api/*
+	reverse_proxy @api backend:3001 {
+		# Preserve SSE
+		header_up Host {host}
+	}
+
+	# Optionally proxy root to API welcome
+	reverse_proxy backend:3001
+
+	# Security headers (basic)
+	headers {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy no-referrer
+	}
+}

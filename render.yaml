@@ -11,8 +11,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3001
       - key: DB_HOST
         sync: false # asigna el host de tu proveedor MySQL (Railway, PlanetScale, etc.)
       - key: DB_PORT
@@ -27,3 +25,24 @@ services:
         value: "0"
       - key: JWT_SECRET
         sync: false
+      - key: CORS_ORIGINS
+        sync: false # ej: https://<tu-frontend>.onrender.com,capacitor://localhost
+      - key: FRONTEND_RESET_URL
+        sync: false # ej: https://<tu-frontend>.onrender.com/reset-password
+
+  - type: web
+    name: yen-frontend
+    plan: free
+    rootDir: frontend
+    runtime: static
+    buildCommand: "npm ci && npm run build"
+    staticPublishPath: build
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: REACT_APP_API_URL
+        sync: false # se completa con la URL pública del backend + /api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

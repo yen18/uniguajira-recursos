@@ -12,7 +12,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
-        value: 18.20.4
+        value: 20.17.0
       - key: DB_HOST
         sync: false # asigna el host de tu proveedor MySQL (Railway, PlanetScale, etc.)
       - key: DB_PORT
@@ -38,13 +38,13 @@ services:
     name: yen-frontend
     rootDir: frontend
     runtime: static
-    buildCommand: "npm ci && npm run build"
+    buildCommand: "npm ci --legacy-peer-deps && npm run build"
     staticPublishPath: build
     envVars:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
-        value: 18.20.4
+        value: 20.17.0
       - key: REACT_APP_API_URL
         sync: false # se completa con la URL pública del backend + /api
     routes:

@@ -25,6 +25,8 @@ services:
         value: "0"
       - key: JWT_SECRET
         sync: false
+      - key: REFRESH_COOKIE_SAMESITE
+        value: none
       - key: CORS_ORIGINS
         sync: false # ej: https://<tu-frontend>.onrender.com,capacitor://localhost
       - key: FRONTEND_RESET_URL
@@ -32,7 +34,6 @@ services:
 
   - type: web
     name: yen-frontend
-    plan: free
     rootDir: frontend
     runtime: static
     buildCommand: "npm ci && npm run build"

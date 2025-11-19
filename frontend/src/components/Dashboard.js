@@ -39,7 +39,8 @@ import {
   equiposService,
   solicitudesService,
   adminService,
-  handleApiError 
+  handleApiError,
+  API_BASE_URL
 } from '../services/api';
 import { asArray } from '../utils/normalize';
 
@@ -106,7 +107,7 @@ const Dashboard = ({ user }) => {
   // Auto-refresh suave cada 20s para admin y vista general
   useEffect(() => {
     // SSE en vivo: refrescar estadísticas al cambiar solicitudes
-    const es = new EventSource('http://localhost:3001/api/solicitudes/stream');
+    const es = new EventSource(`${API_BASE_URL}/solicitudes/stream`);
     const refresh = async () => { setRefreshing(true); await loadDashboardData(); setRefreshing(false); };
     es.addEventListener('solicitudes:update', refresh);
     es.addEventListener('salas:update', refresh);

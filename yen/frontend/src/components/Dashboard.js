@@ -37,7 +37,8 @@ import {
   salasService, 
   videoproyectoresService, 
   solicitudesService,
-  handleApiError 
+  handleApiError,
+  API_BASE_URL
 } from '../services/api';
 
 const Dashboard = ({ user }) => {
@@ -82,7 +83,7 @@ const Dashboard = ({ user }) => {
   // Auto-refresh suave cada 20s para admin y vista general
   useEffect(() => {
     // SSE en vivo: refrescar estadísticas al cambiar solicitudes
-    const es = new EventSource('http://localhost:3001/api/solicitudes/stream');
+    const es = new EventSource(`${API_BASE_URL}/solicitudes/stream`);
     es.addEventListener('solicitudes:update', async () => {
       setRefreshing(true);
       await loadDashboardData();

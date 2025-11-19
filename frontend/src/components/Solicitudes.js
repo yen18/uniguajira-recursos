@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../services/api';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -322,7 +323,7 @@ const Solicitudes = ({ user }) => {
   // Auto-actualización suave (sin parpadeo): refresca solo la lista
   useEffect(() => {
     // SUSCRIPCIÓN EN VIVO por SSE
-    const es = new EventSource('http://localhost:3001/api/solicitudes/stream');
+    const es = new EventSource(`${API_BASE_URL}/solicitudes/stream`);
     es.addEventListener('solicitudes:update', async () => {
       setRefreshing(true);
       await loadSolicitudes();

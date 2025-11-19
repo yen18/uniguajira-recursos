@@ -33,7 +33,7 @@ import {
   Warning
 } from '@mui/icons-material';
 import { Schedule } from '@mui/icons-material';
-import { videoproyectoresService, handleApiError } from '../services/api';
+import { videoproyectoresService, handleApiError, API_BASE_URL } from '../services/api';
 import { asArray } from '../utils/normalize';
 import { useLocation } from 'react-router-dom';
 
@@ -61,7 +61,7 @@ const Videoproyectores = ({ user }) => {
   useEffect(() => {
     loadVideoproyectores();
     // Suscribirse a SSE para actualizaciones en vivo
-    const es = new EventSource('http://localhost:3001/api/solicitudes/stream');
+    const es = new EventSource(`${API_BASE_URL}/solicitudes/stream`);
     const onSolicitudes = async () => { setRefreshing(true); await loadVideoproyectores(); setRefreshing(false); };
     const onVP = async () => { setRefreshing(true); await loadVideoproyectores(); setRefreshing(false); };
     es.addEventListener('solicitudes:update', onSolicitudes);

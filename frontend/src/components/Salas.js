@@ -30,7 +30,7 @@ import {
   LocationOn,
   People
 } from '@mui/icons-material';
-import { salasService, handleApiError } from '../services/api';
+import { salasService, handleApiError, API_BASE_URL } from '../services/api';
 
 const Salas = ({ user }) => {
   // Solo roles habilitados para salas en UI (estudiante oculto)
@@ -62,7 +62,7 @@ const Salas = ({ user }) => {
   useEffect(() => {
     loadSalas();
     // Suscribirse a SSE para actualizaciones en vivo
-    const es = new EventSource('http://localhost:3001/api/solicitudes/stream');
+    const es = new EventSource(`${API_BASE_URL}/solicitudes/stream`);
     const onSolicitudes = async () => { setRefreshing(true); await loadSalas(); setRefreshing(false); };
     const onSalas = async () => { setRefreshing(true); await loadSalas(); setRefreshing(false); };
     es.addEventListener('solicitudes:update', onSolicitudes);

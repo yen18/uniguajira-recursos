@@ -112,6 +112,15 @@ app.get('/', (req, res) => {
     });
 });
 
+// Raíz /api para testConnection del frontend (evita 404)
+app.get('/api', (req, res) => {
+    res.json({
+        message: 'API root',
+        commit: process.env.RENDER_GIT_COMMIT || process.env.COMMIT_HASH || 'unknown',
+        time: new Date().toISOString()
+    });
+});
+
 // Rutas de la API
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/auth', authRoutes);

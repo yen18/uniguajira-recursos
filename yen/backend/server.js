@@ -71,6 +71,11 @@ app.get('/', (req, res) => {
     });
 });
 
+// Raíz /api (para compatibilidad con testConnection)
+app.get('/api', (req, res) => {
+    res.json({ message: 'API root', commit: process.env.RENDER_GIT_COMMIT || process.env.COMMIT_HASH || 'unknown' });
+});
+
 // Rutas de la API
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/salas', salasRoutes);

@@ -15,6 +15,7 @@ function register(res) {
 
   const client = { res, heartbeat: null };
   clients.add(client);
+  try { console.log(`[SSE] Nueva conexión. Clientes activos: ${clients.size}`); } catch {}
   // Limpiar automáticamente al cerrar la respuesta
   const cleanup = () => unregister(client);
   res.on?.('close', cleanup);
@@ -33,6 +34,7 @@ function register(res) {
 function unregister(client) {
   try { clearInterval(client.heartbeat); } catch {}
   clients.delete(client);
+  try { console.log(`[SSE] Conexión cerrada. Clientes activos: ${clients.size}`); } catch {}
 }
 
 function broadcast(event, data) {

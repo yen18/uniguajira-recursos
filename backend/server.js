@@ -118,10 +118,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/salas', salasRoutes);
 app.use('/api/videoproyectores', videoproyectoresRoutes);
 app.use('/api/equipos', equiposRoutes);
-app.use('/api/solicitudes', solicitudesRoutes);
-app.use('/api/admin', adminRoutes);
-
-// Stream SSE para notificaciones en vivo
+// Colocar el stream ANTES del router de solicitudes para evitar que /:id capture "stream"
 app.get('/api/solicitudes/stream', (req, res) => {
     if (!sse.canAccept?.() && sse.getClientCount() >= parseInt(process.env.SSE_MAX_CLIENTS || '200', 10)) {
         return res.status(503).json({ success: false, error: 'sse_max_clients_exceeded' });
@@ -132,10 +129,14 @@ app.get('/api/solicitudes/stream', (req, res) => {
     res.flushHeaders?.();
     res.write('retry: 5000\n\n');
     sse.register(res);
+    console.log('[SSE] Cliente conectado. Total:', sse.getClientCount());
     req.on('close', () => {
+        console.log('[SSE] Cliente desconectado. Total:', sse.getClientCount() - 1);
         try { res.end(); } catch {}
     });
 });
+app.use('/api/solicitudes', solicitudesRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Healthcheck / métricas básicas
 app.get('/api/health', async (req, res) => {

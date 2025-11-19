@@ -32,7 +32,8 @@ const equipoEstadoPatch = z.object({
 
 // Basic time/fecha regexes
 const fechaRegex = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD
-const horaRegex = /^\d{2}:\d{2}$/; // HH:MM
+// Aceptar HH:MM o HH:MM:SS para mayor flexibilidad en formularios
+const horaRegex = /^\d{2}:\d{2}(?::\d{2})?$/; // HH:MM opcional :SS
 
 const solicitudCreate = z.object({
   id_usuario: z.number().int().positive(),
@@ -45,7 +46,8 @@ const solicitudCreate = z.object({
   numero_asistentes: z.string().max(50).optional().nullable(),
   asignatura: z.string().min(3).max(50),
   docente: z.string().min(2).max(50),
-  semestre: z.number().int().min(1).max(10).optional().nullable(),
+  // Permitir que llegue como string "2" y convertir a número
+  semestre: z.coerce.number().int().min(1).max(10).optional().nullable(),
   celular: z.string().regex(/^\d{10}$/),
   servicio: z.enum(['videoproyector','sala','videocamara','dvd','extension','audio','vhs','otros']),
   salon: z.string().min(1).max(10),

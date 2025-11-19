@@ -521,7 +521,7 @@ router.post('/', validate(schemas.solicitudCreate), async (req, res) => {
             await connection.execute(
                 `INSERT INTO historial_reservas 
                 (id_solicitud, fecha_modificacion, estado_anterior, estado_nuevo, comentarios) 
-                VALUES (?, NOW(), 'nuevo', 'aprobado', 'Aprobación automática - recurso disponible en horario solicitado')`,
+                VALUES (?, NOW(), NULL, 'aprobado', 'Aprobación automática - recurso disponible en horario solicitado')`,
                 [solicitudId]
             );
 

@@ -156,6 +156,17 @@ app.get('/api/health', async (req, res) => {
     });
 });
 
+// Version info (commit hash / timestamp) para verificar despliegue activo
+app.get('/api/version', (req, res) => {
+    const commit = process.env.RENDER_GIT_COMMIT || process.env.COMMIT_HASH || 'unknown';
+    res.json({
+        commit,
+        deployed_at: process.env.RENDER_GIT_COMMIT ? undefined : process.env.DEPLOYED_AT,
+        server_time: new Date().toISOString(),
+        sse_clients: sse.getClientCount()
+    });
+});
+
 // Endpoint DEV para forzar broadcast SSE (solo no-producción)
 app.get('/api/dev/broadcast', (req, res) => {
     try {

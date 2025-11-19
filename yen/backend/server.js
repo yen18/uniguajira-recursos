@@ -127,6 +127,12 @@ app.get('/api/health', async (req, res) => {
     });
 });
 
+// Versión / commit activo (para despliegues alternos si este árbol se usa)
+app.get('/api/version', (req, res) => {
+    const commit = process.env.RENDER_GIT_COMMIT || process.env.COMMIT_HASH || 'unknown';
+    res.json({ commit, server_time: new Date().toISOString(), sse_clients: sse.getClientCount() });
+});
+
     // Ajustes de timeouts para conexiones keep-alive (mitiga sockets colgados)
     server.keepAliveTimeout = parseInt(process.env.KEEPALIVE_TIMEOUT_MS || '61000', 10);
     server.headersTimeout = parseInt(process.env.HEADERS_TIMEOUT_MS || '65000', 10);

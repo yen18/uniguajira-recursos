@@ -147,13 +147,22 @@ router.delete('/:id', async (req, res) => {
 router.post('/login', validate(schemas.usuarioLogin), async (req, res) => {
   try {
     const { correo_electronico, pass } = req.validated.body;
-    if (!correo_electronico || !pass) return res.status(400).json({ success:false, message:'Correo y contraseña son requeridos' });
+        if (!correo_electronico || !pass) {
+            if (process.env.AUTH_VERBOSE === '1') console.warn('[AUTH][login] Falla: campos vacíos', { correo_electronico_present: !!correo_electronico, pass_present: !!pass });
+            return res.status(400).json({ success:false, message:'Correo y contraseña son requeridos' });
+        }
     const [users] = await pool.execute('SELECT * FROM usuarios WHERE correo_electronico=? LIMIT 1', [correo_electronico]);
-    if (!users.length) return res.status(401).json({ success:false, message:'Credenciales inválidas' });
+        if (!users.length) {
+            if (process.env.AUTH_VERBOSE === '1') console.warn('[AUTH][login] Falla: usuario no existe', { correo: correo_electronico });
+            return res.status(401).json({ success:false, message:'Credenciales inválidas' });
+        }
     let user = users[0];
     const { verifyPassword, hashPassword, isHashedPassword, signAccessToken, generateAndStoreRefresh, setRefreshCookie } = require('../utils/auth');
     const ok = await verifyPassword(pass, user.pass);
-    if (!ok) return res.status(401).json({ success:false, message:'Credenciales inválidas' });
+        if (!ok) {
+            if (process.env.AUTH_VERBOSE === '1') console.warn('[AUTH][login] Falla: password incorrecto', { correo: correo_electronico });
+            return res.status(401).json({ success:false, message:'Credenciales inválidas' });
+        }
     // Upgrade si era texto plano
     if (!isHashedPassword(user.pass)) {
       try {
@@ -166,7 +175,8 @@ router.post('/login', validate(schemas.usuarioLogin), async (req, res) => {
     const refreshToken = await generateAndStoreRefresh(user);
     setRefreshCookie(res, refreshToken);
     const { pass: _, ...userWithoutPassword } = user;
-    res.json({ success:true, message:'Login exitoso', data:userWithoutPassword, access_token: accessToken, expires_in_min: parseInt(process.env.ACCESS_TOKEN_TTL_MIN || '15',10) });
+        if (process.env.AUTH_VERBOSE === '1') console.log('[AUTH][login] Éxito', { id_usuario: user.id_usuario, tipo: user.tipo_de_usuario });
+        res.json({ success:true, message:'Login exitoso', data:userWithoutPassword, access_token: accessToken, expires_in_min: parseInt(process.env.ACCESS_TOKEN_TTL_MIN || '15',10) });
   } catch (error) {
     console.error('Error en login:', error);
     res.status(500).json({ success:false, message:'Error en el servidor', error:error.message });

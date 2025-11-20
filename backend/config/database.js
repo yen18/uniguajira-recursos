@@ -2,6 +2,18 @@ const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 // Configuración de la conexión a MySQL
+// SSL opcional (algunos proveedores como PlanetScale/Aiven lo requieren)
+let sslOptions;
+if (process.env.DB_SSL === '1' || process.env.DB_SSL === 'true') {
+    sslOptions = {
+        rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === 'false' ? false : true
+    };
+    if (process.env.DB_SSL_CA) {
+        // Permitir cargar CA desde env (usar \n en el valor)
+        sslOptions.ca = process.env.DB_SSL_CA.replace(/\\n/g, '\n');
+    }
+}
+
 const dbConfig = {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -10,7 +22,8 @@ const dbConfig = {
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    ...(sslOptions ? { ssl: sslOptions } : {})
 };
 
 // Crear pool de conexiones
@@ -24,7 +37,8 @@ const testConnection = async () => {
         connection.release();
         return true;
     } catch (error) {
-        console.error('❌ Error conectando a MySQL:', error.message);
+        const details = [error.message, error.code, error.errno, error.sqlState].filter(Boolean).join(' | ');
+        console.error('❌ Error conectando a MySQL:', details);
         return false;
     }
 };
@@ -123,6 +137,18 @@ const ensureSchema = async () => {
                 ADD INDEX IF NOT EXISTS idx_id_equipo (id_equipo);
             `);
             console.log('🛠️ Esquema verificado/actualizado: columna id_equipo en solicitudes');
+
+            // Ampliar ENUM de historial_reservas para incluir 'anulado'
+            try {
+                await conn.query(`
+                    ALTER TABLE historial_reservas
+                    MODIFY COLUMN estado_anterior ENUM('pendiente','aprobado','rechazado','anulado') NULL DEFAULT NULL,
+                    MODIFY COLUMN estado_nuevo    ENUM('pendiente','aprobado','rechazado','anulado') NULL DEFAULT NULL;
+                `);
+                console.log('🛠️ Esquema verificado/actualizado: historial_reservas admite anulado');
+            } catch (e) {
+                console.warn('⚠️ No se pudo ajustar historial_reservas (posible falta de tabla o permisos):', e.message);
+            }
         } finally {
             conn.release();
         }

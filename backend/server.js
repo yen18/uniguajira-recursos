@@ -303,7 +303,7 @@ startServer();
 // "disponible" si no tiene otra reserva activa.
 function recalculateDynamicOccupancy() {
     const now = new Date();
-    const todayStr = now.toISOString().slice(0,10); // YYYY-MM-DD
+    const todayStr = [now.getFullYear(), String(now.getMonth()+1).padStart(2,'0'), String(now.getDate()).padStart(2,'0')].join('-'); // Fecha local YYYY-MM-DD
     const timeStr = now.toTimeString().slice(0,8);  // HH:MM:SS
     (async () => {
         try {

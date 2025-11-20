@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
     try {
         // Obtener fecha y hora actual
         const ahora = new Date();
-        const fechaActual = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
+        const fechaActual = [ahora.getFullYear(), String(ahora.getMonth()+1).padStart(2,'0'), String(ahora.getDate()).padStart(2,'0')].join('-'); // Fecha local YYYY-MM-DD
         const horaActual = ahora.toTimeString().slice(0, 5); // HH:MM
         
         console.log('📅 Verificando estado dinámico de videoproyectores');
@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
                         AND s.estado_reserva = 'aprobado'
                         AND s.hora_inicio <= ?
                         AND s.hora_fin > ?
-                    ) THEN 'ocupado'
+                    ) THEN 'ocupada'
                     ELSE 'disponible'
                 END as estado_actual,
                 (

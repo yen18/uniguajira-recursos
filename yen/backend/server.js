@@ -224,7 +224,8 @@ startServer();
 // Ocupación dinámica basada en horario (cada minuto)
 function recalcOcupacion() {
     const now = new Date();
-    const fecha = now.toISOString().slice(0,10);
+    // Usar fecha local (evita desfase UTC que mostraba día anterior)
+    const fecha = [now.getFullYear(), String(now.getMonth()+1).padStart(2,'0'), String(now.getDate()).padStart(2,'0')].join('-');
     const hora = now.toTimeString().slice(0,8);
     (async () => {
         try {

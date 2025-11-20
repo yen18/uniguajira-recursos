@@ -44,7 +44,7 @@ const solicitudCreate = z.object({
   programa: z.string().max(120).optional().nullable(),
   tipo_actividad: z.string().max(100).optional().nullable(),
   numero_asistentes: z.string().max(50).optional().nullable(),
-  asignatura: z.string().min(3).max(50),
+  asignatura: z.string().min(2).max(50),
   docente: z.string().min(2).max(50),
   // Permitir que llegue como string "2" y convertir a número
   semestre: z.coerce.number().int().min(1).max(10).optional().nullable(),

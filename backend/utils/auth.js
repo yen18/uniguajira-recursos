@@ -73,10 +73,13 @@ async function rotateRefresh(oldToken, user) {
 }
 
 function setRefreshCookie(res, token) {
+  const allowed = new Set(['lax','strict','none']);
+  const samesite = String(process.env.REFRESH_COOKIE_SAMESITE || 'lax').toLowerCase();
+  const sameSite = allowed.has(samesite) ? samesite : 'lax';
   res.cookie(REFRESH_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite,
     path: '/api/auth',
     maxAge: REFRESH_TTL_DAYS * 24*60*60*1000
   });

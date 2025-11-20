@@ -357,7 +357,17 @@ const Solicitudes = ({ user }) => {
       } else {
         response = await solicitudesService.getByUsuario(user.id_usuario);
       }
-      setSolicitudes(response.data.data);
+      const normalizeEstado = (e) => {
+        if (!e) return 'pendiente';
+        if (e === 'aprobada') return 'aprobado';
+        if (e === 'rechazada') return 'rechazado';
+        return e;
+      };
+      const mapped = (response.data.data || []).map(r => ({
+        ...r,
+        estado: normalizeEstado(r.estado || r.estado_reserva)
+      }));
+      setSolicitudes(mapped);
     } catch (error) {
       const apiError = handleApiError(error);
       setError(apiError.message);
@@ -596,7 +606,7 @@ const Solicitudes = ({ user }) => {
       setEditingSolicitud(null);
       setSelectedHorarios([]);
       setFormData({
-        fecha: '',
+        fecha: formatLocalDate(new Date()),
         hora_inicio: '',
         hora_fin: '',
         estudiante: user.nombre || '',
@@ -639,7 +649,7 @@ const Solicitudes = ({ user }) => {
       setFormData({
         ...formData,
         [name]: next,
-        fecha: '',
+        fecha: formatLocalDate(new Date()),
         hora_inicio: '',
         hora_fin: ''
       });
@@ -994,10 +1004,11 @@ const Solicitudes = ({ user }) => {
 
   // Filtrado unificado para contador y tabla
   const visibleSolicitudes = solicitudes.filter((s) => {
-    // Pestañas por estado
-    if (tabValue === 0 && s.estado === 'rechazada') return false;
-    if (tabValue === 1 && s.estado !== 'aprobada') return false;
-    if (tabValue === 2 && s.estado !== 'rechazada') return false;
+    const est = s.estado || s.estado_reserva || 'pendiente';
+    // Pestañas por estado (normalizado)
+    if (tabValue === 0 && est === 'rechazado') return false; // Todas: ocultar rechazadas solo si primera pestaña? (mantener lógica original)
+    if (tabValue === 1 && est !== 'aprobado') return false;
+    if (tabValue === 2 && est !== 'rechazado') return false;
     // Filtro por fecha exacta (si está definido)
     if (fechaFiltro) {
       const local = formatLocalDate(parseFecha(s.fecha));
@@ -1122,7 +1133,7 @@ const Solicitudes = ({ user }) => {
               borderLeft: '4px solid #28a745'
             }}>
               <Typography variant="h3" sx={{ fontWeight: 'bold', color: '#28a745', mb: 1 }}>
-                {solicitudes.filter(s => s.estado === 'aprobada').length}
+                {solicitudes.filter(s => (s.estado || s.estado_reserva) === 'aprobado' || (s.estado || s.estado_reserva) === 'aprobada').length}
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
                 Aprobadas
@@ -1138,7 +1149,7 @@ const Solicitudes = ({ user }) => {
               borderLeft: '4px solid #dc3545'
             }}>
               <Typography variant="h3" sx={{ fontWeight: 'bold', color: '#dc3545', mb: 1 }}>
-                {solicitudes.filter(s => s.estado === 'rechazada').length}
+                {solicitudes.filter(s => (s.estado || s.estado_reserva) === 'rechazado' || (s.estado || s.estado_reserva) === 'rechazada').length}
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
                 Rechazadas

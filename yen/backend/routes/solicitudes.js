@@ -704,6 +704,18 @@ router.delete('/:id', async (req, res) => {
                 }
             } catch(e){ console.warn('[DATE_DEBUG] Error analizando fecha', e.message); }
         }
+        if (process.env.DATE_STRICT === '1' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+            try {
+                const now = new Date();
+                const parts = fecha.split('-').map(Number);
+                const fDate = new Date(parts[0], parts[1]-1, parts[2]);
+                const todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const diffDays = Math.round((fDate.setHours(0,0,0,0) - todayMid.setHours(0,0,0,0)) / 86400000);
+                if (diffDays === -1 && now.getHours() >= 6) {
+                    return res.status(400).json({ success: false, error: 'fecha_desfasada', message: 'La fecha enviada corresponde al día anterior. Selecciona la fecha actual antes de enviar.' });
+                }
+            } catch (e) { console.warn('DATE_STRICT parse error:', e.message); }
+        }
         }
 
         // Iniciar transacción para eliminar solicitud y liberar recursos si estaban asignados

@@ -689,6 +689,21 @@ router.delete('/:id', async (req, res) => {
                 success: false,
                 message: 'Solo se pueden eliminar solicitudes pendientes'
             });
+
+        if (process.env.DATE_DEBUG === '1') {
+            const serverNow = new Date();
+            const localYMD = `${serverNow.getFullYear()}-${String(serverNow.getMonth()+1).padStart(2,'0')}-${String(serverNow.getDate()).padStart(2,'0')}`;
+            console.log('[DATE_DEBUG] Raw fecha recibida:', fecha, 'Hora inicio:', hora_inicio, 'Hora fin:', hora_fin);
+            console.log('[DATE_DEBUG] Server local date:', localYMD, 'Server ISO now:', serverNow.toISOString());
+            try {
+                if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+                    const fParts = fecha.split('-').map(Number);
+                    const fDate = new Date(fParts[0], fParts[1]-1, fParts[2]);
+                    const diffDays = Math.round((fDate.setHours(0,0,0,0) - serverNow.setHours(0,0,0,0)) / 86400000);
+                    console.log('[DATE_DEBUG] Diferencia fecha - hoy (días):', diffDays);
+                }
+            } catch(e){ console.warn('[DATE_DEBUG] Error analizando fecha', e.message); }
+        }
         }
 
         // Iniciar transacción para eliminar solicitud y liberar recursos si estaban asignados

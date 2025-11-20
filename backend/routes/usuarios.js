@@ -151,8 +151,19 @@ router.post('/login', validate(schemas.usuarioLogin), async (req, res) => {
             if (process.env.AUTH_VERBOSE === '1') console.warn('[AUTH][login] Falla: campos vacíos', { correo_electronico_present: !!correo_electronico, pass_present: !!pass });
             return res.status(400).json({ success:false, message:'Correo y contraseña son requeridos' });
         }
-    const [users] = await pool.execute('SELECT * FROM usuarios WHERE correo_electronico=? LIMIT 1', [correo_electronico]);
+    // Permitir alias sin email: si no contiene '@' buscar también por alias temporal
+    let queryUser = correo_electronico;
+    const [users] = await pool.execute('SELECT * FROM usuarios WHERE correo_electronico=? LIMIT 1', [queryUser]);
         if (!users.length) {
+        // Fallback: intentar por campo alterno 'correo_electronico' igual al alias directamente si existe en BD
+        if (!correo_electronico.includes('@')) {
+            const [alt] = await pool.execute('SELECT * FROM usuarios WHERE correo_electronico=? LIMIT 1', [correo_electronico]);
+            if (alt.length) {
+                users.push(alt[0]);
+            }
+        }
+    }
+    if (!users.length) {
             if (process.env.AUTH_VERBOSE === '1') console.warn('[AUTH][login] Falla: usuario no existe', { correo: correo_electronico });
             return res.status(401).json({ success:false, message:'Credenciales inválidas' });
         }

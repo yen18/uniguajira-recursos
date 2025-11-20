@@ -14,9 +14,10 @@ const usuarioCreate = z.object({
   tipo_de_usuario: z.enum(['administrador','docente','estudiante','invitado']).optional().default('estudiante')
 });
 
+// Para entorno de desarrollo permitir identificador simple sin '@'
 const usuarioLogin = z.object({
-  correo_electronico: z.string().email().max(120),
-  pass: z.string().min(1).max(100) // Permite cualquier entrada; validación fuerte sólo al crear/resetear
+  correo_electronico: z.string().min(1).max(120), // relajado: puede ser email o alias corto ("hh")
+  pass: z.string().min(1).max(100)
 });
 
 const equipoCreate = z.object({

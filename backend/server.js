@@ -115,6 +115,7 @@ app.get('/', (req, res) => {
 // Raíz /api para testConnection del frontend (evita 404)
 app.get('/api', (req, res) => {
     res.json({
+        success: true,
         message: 'API root',
         commit: process.env.RENDER_GIT_COMMIT || process.env.COMMIT_HASH || 'unknown',
         time: new Date().toISOString()

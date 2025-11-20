@@ -331,7 +331,7 @@ router.post('/', async (req, res) => {
         }
 
         // Validaciones de formato
-        const asignaturaRegex = /^[a-zA-Z0-9\s]{3,50}$/;
+        const asignaturaRegex = /^[a-zA-Z0-9\s]{2,50}$/;
         const salonRegex = /^[a-zA-Z0-9]{1,10}$/;
         const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{2,50}$/;
         const celularRegex = /^[0-9]{10}$/;
@@ -339,7 +339,7 @@ router.post('/', async (req, res) => {
         if (!asignatura || !asignaturaRegex.test(asignatura)) {
             return res.status(400).json({
                 success: false,
-                message: 'Asignatura debe contener solo letras, números y espacios (3-50 caracteres)'
+                message: 'Asignatura debe contener solo letras, números y espacios (2-50 caracteres)'
             });
         }
 
@@ -451,9 +451,6 @@ router.post('/', async (req, res) => {
 
             const solicitudId = result.insertId;
 
-            // NO marcar recursos como ocupados globalmente - solo verificar por horarios
-            // Los recursos permanecen "disponibles" pero se verifican conflictos por horario/fecha
-            
             console.log(`✅ Recurso ${recursoDisponible.tipo} ${recursoDisponible.recurso.nombre} asignado para horario ${hora_inicio}-${hora_fin}`);
 
             // Registrar en historial la aprobación automática

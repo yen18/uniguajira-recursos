@@ -220,3 +220,35 @@ const startServer = async () => {
 };
 
 startServer();
+
+// Ocupación dinámica basada en horario (cada minuto)
+function recalcOcupacion() {
+    const now = new Date();
+    const fecha = now.toISOString().slice(0,10);
+    const hora = now.toTimeString().slice(0,8);
+    (async () => {
+        try {
+            const [activos] = await pool.execute(
+                `SELECT id_sala, id_videoproyector, id_equipo, servicio
+                 FROM solicitudes
+                 WHERE fecha = ? AND estado_reserva = 'aprobado'
+                   AND hora_inicio <= ? AND hora_fin > ?`,
+                [fecha, hora, hora]
+            );
+            const salas = new Set(activos.filter(a => a.servicio === 'sala' && a.id_sala).map(a => a.id_sala));
+            const vps = new Set(activos.filter(a => a.servicio === 'videoproyector' && a.id_videoproyector).map(a => a.id_videoproyector));
+            const equipos = new Set(activos.filter(a => ['videocamara','dvd','extension','audio','vhs','otros'].includes(a.servicio) && a.id_equipo).map(a => a.id_equipo));
+            await pool.execute('UPDATE salas SET estado = "disponible"');
+            if (salas.size) await pool.execute(`UPDATE salas SET estado='ocupada' WHERE id_sala IN (${[...salas].map(()=>'?').join(',')})`, [...salas]);
+            await pool.execute('UPDATE videoproyectores SET estado = "disponible"');
+            if (vps.size) await pool.execute(`UPDATE videoproyectores SET estado='ocupada' WHERE id_videoproyector IN (${[...vps].map(()=>'?').join(',')})`, [...vps]);
+            await pool.execute('UPDATE equipos SET estado = "disponible" WHERE estado NOT IN ("mantenimiento","inactivo")');
+            if (equipos.size) await pool.execute(`UPDATE equipos SET estado='ocupada' WHERE id_equipo IN (${[...equipos].map(()=>'?').join(',')})`, [...equipos]);
+            if (sse.getClientCount() > 0) sse.broadcast('solicitudes:update', { action: 'occupancy_refresh', at: now.toISOString() });
+        } catch (e) {
+            console.warn('[ocupacion] Error:', e.message);
+        }
+    })();
+}
+setInterval(recalcOcupacion, parseInt(process.env.OCCUPANCY_INTERVAL_MS || '60000',10));
+console.log('⏱️ Ocupación dinámica activada intervalo=', process.env.OCCUPANCY_INTERVAL_MS || '60000');

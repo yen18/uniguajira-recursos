@@ -512,9 +512,6 @@ router.post('/', validate(schemas.solicitudCreate), async (req, res) => {
 
             const solicitudId = result.insertId;
 
-            // NO marcar recursos como ocupados globalmente - solo verificar por horarios
-            // Los recursos permanecen "disponibles" pero se verifican conflictos por horario/fecha
-            
             console.log(`✅ Recurso ${recursoDisponible.tipo} ${recursoDisponible.recurso.nombre} asignado para horario ${hora_inicio}-${hora_fin}`);
 
             // Registrar en historial la aprobación automática

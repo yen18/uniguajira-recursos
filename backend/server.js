@@ -294,3 +294,57 @@ const startServer = async () => {
 };
 
 startServer();
+
+// =============================
+// Ocupación dinámica por horario
+// =============================
+// Cada minuto recalcula qué recursos deben estar "ocupada" según solicitudes aprobadas
+// actuales (fecha = hoy y hora_actual entre hora_inicio y hora_fin). El resto vuelve a
+// "disponible" si no tiene otra reserva activa.
+function recalculateDynamicOccupancy() {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0,10); // YYYY-MM-DD
+    const timeStr = now.toTimeString().slice(0,8);  // HH:MM:SS
+    (async () => {
+        try {
+            // Solicitudes activas ahora
+            const [active] = await pool.execute(
+                `SELECT id_sala, id_videoproyector, id_equipo, servicio
+                 FROM solicitudes
+                 WHERE fecha = ?
+                   AND estado_reserva = 'aprobado'
+                   AND hora_inicio <= ? AND hora_fin > ?`,
+                [todayStr, timeStr, timeStr]
+            );
+            const salasActivas = new Set(active.filter(a => a.servicio === 'sala' && a.id_sala).map(a => a.id_sala));
+            const vpActivos = new Set(active.filter(a => a.servicio === 'videoproyector' && a.id_videoproyector).map(a => a.id_videoproyector));
+            const eqActivos = new Set(active.filter(a => ['videocamara','dvd','extension','audio','vhs','otros'].includes(a.servicio) && a.id_equipo).map(a => a.id_equipo));
+
+            // Actualizar salas
+            await pool.execute('UPDATE salas SET estado = "disponible"');
+            if (salasActivas.size) {
+                await pool.execute(`UPDATE salas SET estado = 'ocupada' WHERE id_sala IN (${[...salasActivas].map(()=>'?').join(',')})`, [...salasActivas]);
+            }
+            // Actualizar videoproyectores
+            await pool.execute('UPDATE videoproyectores SET estado = "disponible"');
+            if (vpActivos.size) {
+                await pool.execute(`UPDATE videoproyectores SET estado = 'ocupada' WHERE id_videoproyector IN (${[...vpActivos].map(()=>'?').join(',')})`, [...vpActivos]);
+            }
+            // Actualizar equipos
+            await pool.execute('UPDATE equipos SET estado = "disponible" WHERE estado != "mantenimiento" AND estado != "inactivo"');
+            if (eqActivos.size) {
+                await pool.execute(`UPDATE equipos SET estado = 'ocupada' WHERE id_equipo IN (${[...eqActivos].map(()=>'?').join(',')})`, [...eqActivos]);
+            }
+            // Broadcast sólo si hay clientes SSE (reduce ruido)
+            if (sse.getClientCount() > 0) {
+                sse.broadcast('solicitudes:update', { action: 'occupancy_refresh', at: now.toISOString() });
+            }
+        } catch (e) {
+            console.warn('[occupancy] Error recalculando ocupación:', e.message);
+        }
+    })();
+}
+
+// Intervalo cada 60s (ajustable)
+setInterval(recalculateDynamicOccupancy, parseInt(process.env.OCCUPANCY_INTERVAL_MS || '60000',10));
+console.log('⏱️ Ocupación dinámica activada (intervalo', process.env.OCCUPANCY_INTERVAL_MS || '60000', 'ms)');

@@ -14,6 +14,7 @@ if (process.env.DB_SSL === '1' || process.env.DB_SSL === 'true') {
     }
 }
 
+const CONNECT_TIMEOUT = parseInt(process.env.DB_CONNECT_TIMEOUT_MS || '15000', 10);
 const dbConfig = {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -21,27 +22,44 @@ const dbConfig = {
     database: process.env.DB_NAME || 'gestion_de_recursos',
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: parseInt(process.env.DB_POOL_MAX || '10', 10),
     queueLimit: 0,
+    connectTimeout: CONNECT_TIMEOUT,
     ...(sslOptions ? { ssl: sslOptions } : {})
 };
 
 // Crear pool de conexiones
 const pool = mysql.createPool(dbConfig);
 
-// Función para probar la conexión
+// Función para probar la conexión con reintentos iniciales
 const testConnection = async () => {
-    try {
-        const connection = await pool.getConnection();
-        console.log('✅ Conexión exitosa a MySQL');
-        connection.release();
-        return true;
-    } catch (error) {
-        const details = [error.message, error.code, error.errno, error.sqlState].filter(Boolean).join(' | ');
-        console.error('❌ Error conectando a MySQL:', details);
-        return false;
+    const retries = parseInt(process.env.DB_INIT_RETRIES || '3', 10);
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const connection = await pool.getConnection();
+            console.log(`✅ Conexión MySQL exitosa (intento ${attempt})`);
+            connection.release();
+            return true;
+        } catch (error) {
+            const details = [error.message, error.code, error.errno, error.sqlState].filter(Boolean).join(' | ');
+            console.warn(`⚠️ Falló conexión MySQL intento ${attempt}/${retries}:`, details);
+            if (attempt === retries) {
+                console.error('❌ Error conectando a MySQL tras reintentos');
+                return false;
+            }
+            await new Promise(r => setTimeout(r, 1000 * attempt));
+        }
     }
+    return false;
 };
+
+// Ping keepalive para evitar timeouts en proveedores que cierran conexiones inactivas
+const PING_INTERVAL = parseInt(process.env.DB_PING_INTERVAL_MS || '300000', 10); // 5 min
+if (PING_INTERVAL > 0) {
+    setInterval(() => {
+        pool.query('SELECT 1').catch(() => {});
+    }, PING_INTERVAL).unref();
+}
 
 // Asegurar cambios mínimos de esquema requeridos por el frontend
 const ensureSchema = async () => {
